@@ -369,6 +369,8 @@ def process_return(return_id):
     conn.close()
     return redirect(url_for('returns'))
 
+# Initialize database
+database.init_db()
+
 if __name__ == '__main__':
-    database.init_db()
     app.run(debug=True)
