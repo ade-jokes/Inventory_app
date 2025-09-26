@@ -1,5 +1,6 @@
 # Main application
 # app.py
+import os
 from flask import Flask, render_template, request, redirect, url_for
 import database
 import sqlite3
@@ -372,7 +373,13 @@ def process_return(return_id):
     conn.close()
     return redirect(url_for('returns'))
 
+# Initialize database on startup
+database.init_db()
+
+# ⚠️ CRITICAL: Railway-specific changes below
 if __name__ == '__main__':
-    # Ensure database is initialized
-    database.init_db()
-    app.run(debug=True)
+    # Get port from Railway environment variable or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    
+    # Run the app - debug=False for production
+    app.run(host='0.0.0.0', port=port, debug=False)

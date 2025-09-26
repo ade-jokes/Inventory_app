@@ -1,10 +1,13 @@
 # Database operations
 # database.py
 import sqlite3
+import os
 from datetime import datetime
 
 def get_db_connection():
-    conn = sqlite3.connect('inventory.db')
+    # Use Railway's persistent volume or fallback to local file
+    db_path = os.environ.get('DATABASE_PATH', 'inventory.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
