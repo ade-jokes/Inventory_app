@@ -7,9 +7,7 @@ import sqlite3
 
 app = Flask(__name__)
 
-# Initialize database on startup
-with app.app_context():
-    database.init_db()
+# Database will be initialized when first accessed
 
 @app.route('/')
 def dashboard():
@@ -373,8 +371,11 @@ def process_return(return_id):
     conn.close()
     return redirect(url_for('returns'))
 
-# Initialize database on startup
-database.init_db()
+# Initialize database when app starts
+try:
+    database.init_db()
+except Exception as e:
+    print(f"Database initialization warning: {e}")
 
 # ⚠️ CRITICAL: Railway-specific changes below
 if __name__ == '__main__':
