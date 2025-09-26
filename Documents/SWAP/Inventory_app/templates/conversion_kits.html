@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversion Kits - Inventory Management</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Conversion Kits Management</h1>
+            <nav class="nav">
+                <a href="/">Dashboard</a>
+                <a href="/conversion_kits">Conversion Kits</a>
+                <a href="/spare_parts">Spare Parts</a>
+                <a href="/returns">Returns</a>
+            </nav>
+        </div>
+
+        <div class="section">
+            <div class="section-header dropdown-toggle" onclick="toggleDropdown('addKitDropdown')">
+                <h2>➕ Add New Conversion Kit</h2>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div id="addKitDropdown" class="dropdown-content" style="display: none;">
+                <div class="section-content">
+                    <form method="POST" action="/add_conversion_kit" class="form-container">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Serial Number</label>
+                                <input type="text" name="serial" placeholder="e.g., 15092509" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Item Name</label>
+                                <input type="text" name="item_name" placeholder="e.g., Motor Controller" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Units Imported</label>
+                                <input type="number" name="units_imported" placeholder="0" min="0" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Admin/Manager</label>
+                                <input type="text" name="admin" placeholder="Inventory Manager">
+                            </div>
+                            <div class="form-group">
+                                <label>Units Available</label>
+                                <input type="number" name="units_available" placeholder="0" min="0">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Conversion Kit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header dropdown-toggle" onclick="toggleDropdown('addAllocationDropdown')">
+                <h2>🚗 Allocate Kit to Rider</h2>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div id="addAllocationDropdown" class="dropdown-content" style="display: none;">
+                <div class="section-content">
+                    <form method="POST" action="/add_allocation" class="form-container">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Allocation Date</label>
+                                <input type="date" name="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Kit Serial Number</label>
+                                <select name="new_item_serial" required>
+                                    <option value="">Select Kit</option>
+                                    {% for kit in kits %}
+                                        {% if kit['units_available'] > 0 %}
+                                            <option value="{{ kit['serial'] }}">{{ kit['serial'] }} - {{ kit['item_name'] }} ({{ kit['units_available'] }} available)</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Vehicle Plate Number</label>
+                                <input type="text" name="old_item_serial" placeholder="e.g., ABC 123 XY" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Rider Name</label>
+                                <input type="text" name="rider_name" placeholder="Full name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Rider Phone</label>
+                                <input type="tel" name="rider_number" placeholder="080XXXXXXXX">
+                            </div>
+                            <div class="form-group">
+                                <label>Station/Location</label>
+                                <input type="text" name="station" placeholder="e.g., Lagos Island" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Allocate Kit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>📦 Conversion Kits Inventory</h2>
+                <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px;">
+                    <input type="text" id="kitSearch" placeholder="Search kits..." onkeyup="searchTable('kitSearch', 'kitsTable')" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1;">
+                    <div class="stats" style="margin: 0; gap: 10px;">
+                        <div class="stat-card" style="padding: 8px 12px; margin: 0;">
+                            <div class="stat-number" style="font-size: 1.2rem;">{{ kits|length }}</div>
+                            <div style="font-size: 0.8rem;">Total Kits</div>
+                        </div>
+                        <div class="stat-card" style="padding: 8px 12px; margin: 0;">
+                            <div class="stat-number" style="font-size: 1.2rem; color: #28a745;">{{ kits|selectattr('units_available', 'greaterthan', 0)|list|length }}</div>
+                            <div style="font-size: 0.8rem;">In Stock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content scrollable-content">
+                <div class="table-wrapper">
+                    <table id="kitsTable">
+                        <thead>
+                            <tr><th>Serial</th><th>Item Name</th><th>Imported</th><th>Installed</th><th>Available</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for kit in kits %}
+                            <tr>
+                                <td><strong>{{ kit['serial'] }}</strong></td>
+                                <td>{{ kit['item_name'] }}</td>
+                                <td><span class="btn btn-info btn-sm">{{ kit['units_imported'] }}</span></td>
+                                <td><span class="btn btn-secondary btn-sm">{{ kit['units_installed'] }}</span></td>
+                                <td><span class="btn {% if kit['units_available'] > 0 %}btn-success{% else %}btn-danger{% endif %} btn-sm">{{ kit['units_available'] }}</span></td>
+                                <td>
+                                    {% if kit['units_available'] > 10 %}
+                                        <span class="btn btn-success btn-sm">✓ In Stock</span>
+                                    {% elif kit['units_available'] > 0 %}
+                                        <span class="btn btn-warning btn-sm">⚠ Low Stock</span>
+                                    {% else %}
+                                        <span class="btn btn-danger btn-sm">✗ Out of Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td class="actions">
+                                    <button class="btn btn-warning btn-sm" onclick="editItem({{ kit['id'] }}, '{{ kit['serial'] }}', '{{ kit['item_name'] }}', '{{ kit['item_type'] }}', '{{ kit['admin'] or '' }}', '{{ kit['created_at'] or '' }}', {{ kit['units_imported'] }}, {{ kit['units_installed'] }}, {{ kit['units_available'] }})">Edit</button>
+                                    <a href="/delete_item/{{ kit['id'] }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this conversion kit?')">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>🚗 Kit Allocation History</h2>
+                <div style="display: flex; gap: 15px; align-items: center; margin-top: 10px;">
+                    <input type="text" id="allocSearch" placeholder="Search allocations..." onkeyup="searchTable('allocSearch', 'allocTable')" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; flex: 1;">
+                    <div class="stat-card" style="padding: 8px 12px; margin: 0;">
+                        <div class="stat-number" style="font-size: 1.2rem;">{{ allocations|length if allocations else 0 }}</div>
+                        <div style="font-size: 0.8rem;">Kit Allocations</div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-content scrollable-content">
+                <div class="table-wrapper">
+                    <table id="allocTable">
+                        <thead>
+                            <tr><th>Date</th><th>Kit Serial</th><th>Vehicle Plate</th><th>Rider Name</th><th>Phone</th><th>Station</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% if allocations %}
+                                {% for alloc in allocations %}
+                                <tr>
+                                    <td>{{ alloc['date'] or 'N/A' }}</td>
+                                    <td><span class="btn btn-primary btn-sm">{{ alloc['new_item_serial'] }}</span></td>
+                                    <td><strong>{{ alloc['old_item_serial'] or 'N/A' }}</strong></td>
+                                    <td>{{ alloc['rider_name'] or 'N/A' }}</td>
+                                    <td>{{ alloc['rider_number'] or 'N/A' }}</td>
+                                    <td>{{ alloc['station'] or 'N/A' }}</td>
+                                    <td class="actions">
+                                        <a href="/delete_allocation/{{ alloc['id'] }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this allocation?')">Delete</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px; color: #6c757d;">
+                                        <h4>No Kit Allocations Yet</h4>
+                                        <p>Use the "Allocate Kit to Rider" form above to start tracking allocations.</p>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Edit Conversion Kit</h2>
+            <form method="POST" id="updateForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <input type="text" id="editSerial" name="serial" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <input type="text" id="editItemName" name="item_name" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Admin</label>
+                        <input type="text" id="editAdmin" name="admin">
+                    </div>
+                    <div class="form-group">
+                        <label>Created At</label>
+                        <input type="text" id="editCreatedAt" name="created_at">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Units Imported</label>
+                        <input type="number" id="editUnitsImported" name="units_imported">
+                    </div>
+                    <div class="form-group">
+                        <label>Units Installed</label>
+                        <input type="number" id="editUnitsInstalled" name="units_installed">
+                    </div>
+                    <div class="form-group">
+                        <label>Units Available</label>
+                        <input type="number" id="editUnitsAvailable" name="units_available">
+                    </div>
+                </div>
+                <input type="hidden" id="editItemType" name="item_type" value="conversion_kit">
+                <div class="form-row">
+                    <button type="submit" class="btn btn-success">Update Kit</button>
+                    <button type="button" class="btn btn-danger" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
