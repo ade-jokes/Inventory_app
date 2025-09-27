@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spare Parts - Inventory Management</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔩 Spare Parts Management</h1>
+            <nav class="nav">
+                <a href="/">Dashboard</a>
+                <a href="/conversion_kits">Conversion Kits</a>
+                <a href="/spare_parts">Spare Parts</a>
+                <a href="/returns">Returns</a>
+            </nav>
+        </div>
+
+        <div class="section">
+            <div class="section-header dropdown-toggle" onclick="toggleDropdown('addReplacementDropdown')">
+                <h2>➕ Add New Replacement</h2>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div id="addReplacementDropdown" class="dropdown-content" style="display: none;">
+                <div class="section-content">
+                    <form method="POST" action="/add_replacement" class="form-container">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" name="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Old Item Serial</label>
+                                <input type="text" name="old_item_serial" placeholder="Faulty item serial" required>
+                            </div>
+                            <div class="form-group">
+                                <label>New Item Serial</label>
+                                <input type="text" name="new_item_serial" placeholder="Replacement serial" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Rider Number</label>
+                                <input type="text" name="rider_number" placeholder="Rider ID">
+                            </div>
+                            <div class="form-group">
+                                <label>Rider Name</label>
+                                <input type="text" name="rider_name" placeholder="Full name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Station</label>
+                                <input type="text" name="station" placeholder="Station location">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Replacement</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>📦 Spare Parts Inventory</h2>
+                <input type="text" id="partsSearch" placeholder="Search spare parts..." onkeyup="searchTable('partsSearch', 'partsTable')" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="section-content scrollable-content">
+                <div class="table-wrapper">
+                    <table id="partsTable">
+                        <thead>
+                            <tr><th>Item Name</th><th>Serial</th><th>Available Units</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for part in parts %}
+                            <tr>
+                                <td><strong>{{ part['item_name'] }}</strong></td>
+                                <td>{{ part['serial'] or 'N/A' }}</td>
+                                <td>{{ part['units_available'] or 0 }}</td>
+                                <td>
+                                    {% set available = part['units_available'] or 0 %}
+                                    {% if available > 5 %}
+                                        <span class="btn btn-success btn-sm">In Stock</span>
+                                    {% elif available > 0 %}
+                                        <span class="btn btn-warning btn-sm">Low Stock</span>
+                                    {% else %}
+                                        <span class="btn btn-danger btn-sm">Out of Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td class="actions">
+                                    <button class="btn btn-warning btn-sm" onclick="editItem({{ part['id'] }}, '{{ part['serial'] or '' }}', '{{ part['item_name'] }}', '{{ part['item_type'] }}', '{{ part['admin'] or '' }}', '{{ part['created_at'] or '' }}', {{ part['units_imported'] or 0 }}, {{ part['units_installed'] or 0 }}, {{ part['units_available'] or 0 }})">Edit</button>
+                                    <a href="/delete_item/{{ part['id'] }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this spare part?')">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>🔄 Replacement History</h2>
+                <input type="text" id="replacementSearch" placeholder="Search replacements..." onkeyup="searchTable('replacementSearch', 'replacementTable')" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="section-content scrollable-content">
+                <div class="table-wrapper">
+                    <table id="replacementTable">
+                        <thead>
+                            <tr><th>Date</th><th>Old Serial</th><th>New Serial</th><th>Rider Name</th><th>Station</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for rep in replacements %}
+                            <tr>
+                                <td>{{ rep['date'] }}</td>
+                                <td><span class="btn btn-danger btn-sm">{{ rep['old_item_serial'] }}</span></td>
+                                <td><span class="btn btn-success btn-sm">{{ rep['new_item_serial'] }}</span></td>
+                                <td>{{ rep['rider_name'] }}</td>
+                                <td>{{ rep['station'] or 'N/A' }}</td>
+                                <td class="actions">
+                                    <button class="btn btn-warning btn-sm" onclick="editReplacement({{ rep['id'] }}, '{{ rep['date'] }}', '{{ rep['old_item_serial'] }}', '{{ rep['new_item_serial'] }}', '{{ rep['rider_name'] }}', '{{ rep['rider_number'] or '' }}', '{{ rep['station'] or '' }}')">Edit</button>
+                                    <a href="/delete_replacement/{{ rep['id'] }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this replacement?')">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <h2>📈 Parts Analytics</h2>
+            </div>
+            <div class="section-content">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ parts|length }}</div>
+                        <div>Total Parts Types</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ parts|selectattr('units_available')|map(attribute='units_available')|sum or 0 }}</div>
+                        <div>Total Available Units</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ replacements|length }}</div>
+                        <div>Total Replacements</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ parts|selectattr('units_available', 'equalto', 0)|list|length }}</div>
+                        <div>Out of Stock Items</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Edit Spare Part</h2>
+            <form method="POST" id="updateForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <input type="text" id="editSerial" name="serial">
+                    </div>
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <input type="text" id="editItemName" name="item_name" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Units Available</label>
+                        <input type="number" id="editUnitsAvailable" name="units_available">
+                    </div>
+                    <div class="form-group">
+                        <label>Admin</label>
+                        <input type="text" id="editAdmin" name="admin">
+                    </div>
+                </div>
+                <input type="hidden" id="editItemType" name="item_type" value="spare_part">
+                <input type="hidden" id="editUnitsImported" name="units_imported">
+                <input type="hidden" id="editUnitsInstalled" name="units_installed">
+                <div class="form-row">
+                    <button type="submit" class="btn btn-success">Update Part</button>
+                    <button type="button" class="btn btn-danger" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Replacement Modal -->
+    <div id="editReplacementModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditReplacementModal()">&times;</span>
+            <h2>Edit Replacement Record</h2>
+            <form method="POST" id="editReplacementForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="editReplacementDate" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Old Item Serial</label>
+                        <input type="text" id="editOldSerial" name="old_item_serial" placeholder="Faulty item serial" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Item Serial</label>
+                        <input type="text" id="editNewSerial" name="new_item_serial" placeholder="Replacement serial" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Rider Name</label>
+                        <input type="text" id="editReplacementRiderName" name="rider_name" placeholder="Full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Rider Phone</label>
+                        <input type="tel" id="editReplacementRiderNumber" name="rider_number" placeholder="080XXXXXXXX">
+                    </div>
+                    <div class="form-group">
+                        <label>Station</label>
+                        <input type="text" id="editReplacementStation" name="station" placeholder="Station location">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <button type="submit" class="btn btn-success">Update Replacement</button>
+                    <button type="button" class="btn btn-danger" onclick="closeEditReplacementModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
