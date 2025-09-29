@@ -168,6 +168,22 @@ def add_conversion_kit():
     conn.close()
     return redirect(url_for('conversion_kits'))
 
+@app.route('/add_spare_part', methods=['POST'])
+def add_spare_part():
+    conn = database.get_db_connection()
+    
+    units_imported = int(request.form['units_imported'] or 0)
+    units_available = int(request.form['units_available'] or units_imported)
+    
+    conn.execute('''
+        INSERT INTO items (serial, item_name, item_type, admin, created_at, units_imported, units_installed, units_available)
+        VALUES (?, ?, ?, ?, date('now'), ?, 0, ?)
+    ''', (request.form['serial'], request.form['item_name'], 'spare_part', 
+          request.form['admin'], units_imported, units_available))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('spare_parts'))
+
 @app.route('/add_allocation', methods=['POST'])
 def add_allocation():
     conn = database.get_db_connection()
@@ -209,6 +225,22 @@ def add_replacement():
     ''', (request.form['date'], request.form['old_item_serial'], request.form['new_item_serial'],
           request.form['rider_number'], request.form['rider_name'], request.form['released_to'],
           request.form.get('link', ''), request.form.get('station', '')))
+    
+    # Update spare part inventory when distributed
+    new_serial = request.form['new_item_serial']
+    item_check = conn.execute('SELECT units_available FROM items WHERE serial = ? AND item_type = "spare_part"', (new_serial,)).fetchone()
+    
+    if item_check and item_check['units_available'] > 0:
+        conn.execute('''
+            UPDATE items 
+            SET units_installed = COALESCE(units_installed, 0) + 1,
+                units_available = CASE 
+                    WHEN COALESCE(units_available, 0) > 0 THEN COALESCE(units_available, 0) - 1 
+                    ELSE 0 
+                END
+            WHERE serial = ? AND item_type = "spare_part"
+        ''', (new_serial,))
+    
     conn.commit()
     conn.close()
     return redirect(url_for('spare_parts'))

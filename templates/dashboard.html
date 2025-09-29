@@ -154,22 +154,31 @@
 
         <div class="section performance-optimized">
             <div class="section-header">
-                <h2>🔩 Spare Parts</h2>
+                <h2>🔩 Spare Parts Overview</h2>
             </div>
             <div class="section-content scrollable-content">
                 <div class="table-wrapper scrollable-content">
                 <table id="sparePartsTable" class="virtual-scroll">
                     <thead>
-                        <tr><th>Item Name</th><th>Available</th><th>Actions</th></tr>
+                        <tr><th>Item Name</th><th>Serial</th><th>Imported</th><th>Given Out</th><th>Available</th><th>Status</th></tr>
                     </thead>
                     <tbody>
                         {% for part in spare_parts %}
                         <tr class="table-row">
                             <td>{{ part['item_name'] }}</td>
+                            <td>{{ part['serial'] or 'N/A' }}</td>
+                            <td>{{ part['units_imported'] or 0 }}</td>
+                            <td>{{ part['units_installed'] or 0 }}</td>
                             <td>{{ part['units_available'] or 0 }}</td>
-                            <td class="actions">
-                                <button class="btn btn-warning btn-sm" onclick="editItem({{ part['id'] }}, '{{ part['serial'] or '' }}', '{{ part['item_name'] }}', '{{ part['item_type'] }}', '{{ part['admin'] or '' }}', '{{ part['created_at'] or '' }}', {{ part['units_imported'] or 0 }}, {{ part['units_installed'] or 0 }}, {{ part['units_available'] or 0 }})">Edit</button>
-                                <a href="/delete_item/{{ part['id'] }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this item?')">Delete</a>
+                            <td>
+                                {% set available = part['units_available'] or 0 %}
+                                {% if available > 5 %}
+                                    <span class="btn btn-success btn-sm">In Stock</span>
+                                {% elif available > 0 %}
+                                    <span class="btn btn-warning btn-sm">Low Stock</span>
+                                {% else %}
+                                    <span class="btn btn-danger btn-sm">Out of Stock</span>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
